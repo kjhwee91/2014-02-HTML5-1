@@ -24,8 +24,8 @@ git remote add upstream https://github.com/NHNNEXT/2014-02-HTML5-1
 ```
 git branch -a//자신의 아이디 확인
 
-git checkout -b 아이디 원격_브랜치명
-ex) git checkout -b mixed remotes/upstream/mixed
+git checkout -b 아이디
+ex) git checkout -b mixed
 ```
 
 ### 4. 개발 시작
