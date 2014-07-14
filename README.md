@@ -59,5 +59,6 @@ git fetch upstream
 git checkout master
 git rebase upstream/master
 ```
+### 9. 본인 github에서 교수한데 pullrequest보내기.
 
-### 9. 4번부터 다시 시작.
+### 10. 4번부터 다시 시작.
