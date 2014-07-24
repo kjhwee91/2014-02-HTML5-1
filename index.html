@@ -4,7 +4,8 @@
 		<meta charset="utf-8">
 		<title>HTML5 Programming - 1 Class</title>
 		<link rel="stylesheet" href="asset/base.css">
-		<script type="text/javascript" src="todolist.js"></script>
+		<script type="text/javascript" src="template/mustache.js"></script>
+		<script type="text/javascript" src="asset/todolist.js"></script>
 	</head>
 	<body>
 		<section id="todoapp">
@@ -16,7 +17,6 @@
 				<input id="toggle-all" type="checkbox">
 				<label for="toggle-all">Mark all as complete</label>
 				<ul id="todo-list">
-
 <!-- 
 					#완료했을때
 					<li class="completed">
@@ -35,8 +35,7 @@
 							<button class="destroy"></button>
 						</div>
 					</li>
- -->
-
+-->
 				</ul>
 			</section>
 			<footer id="footer">
@@ -61,5 +60,15 @@
 			<p>Refactored by <a href="https://github.com/cburgmer">Christoph Burgmer</a></p>
 			<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
 		</footer>
+
+		<script id="toDoTemplate" type="x-tmpl-mustache">
+			<li>
+				<div class="view">
+					<input class="toggle" type="checkbox">
+					<label>{{todo}}</label>
+					<button class="destroy"></button>
+				</div>
+			</li>
+		</script>
 	</body>
 </html>
