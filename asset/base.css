@@ -193,6 +193,10 @@ label[for='toggle-all'] {
 	position: relative;
 	font-size: 24px;
 	border-bottom: 1px dotted #ccc;
+	opacity: 0;
+	webkit-transition : opacity 0.4s;
+	moz-transition : opacity 0.4s;
+	transition : opacity 0.4s;
 }
 
 #todo-list li:last-child {

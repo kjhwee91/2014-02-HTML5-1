@@ -69,11 +69,14 @@ document.addEventListener("DOMContentLoaded", function(){
 	}
 
 	function destroyToDo(e){
+		debugger;
 		var button = e.target;
 		var li = button.parentNode.parentNode;
 		// 동기 layout , 비동기 layout
 		li.addEventListener('webkitTransitionEnd', function(){
+			debugger;
 			this.parentNode.removeChild(this);
+			console.log("delete");
 		}, false);
 		li.style.opacity = "0.4";
 	}
