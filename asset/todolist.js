@@ -35,11 +35,8 @@ var Doc = {
 	},
 
 	getECN : function(className, eDocument){
-		if (eDocument === null){
-			return document.getElementsByClassName(className);
-		} else {
-			return eDocument.getElementsByClassName(className);
-		}
+		var pre = typeof eDocument==="undefined"?document:eDocument;
+		return pre.getElementsByClassName(className);
 	},
 
 	getETN : function(tagName, eDocument){
@@ -252,7 +249,19 @@ var Todo = {
 		}, function(json){
 			li.addEventListener('webkitTransitionEnd', function(e){
 				//detatch 하기 --- ????????????????????? ㅜㅜ 모르겠으엉
-				this.parentNode.removeChild(this);
+					// 삭제에 대한 ajax가 끝나면 --> 해당 li를 삭제한다.
+					// 		li의 부모노드를 찾는다 (부모노드 = ul)
+					//		부모 노드에서 해당 자식노드인 li를 삭제한다.
+
+					// console.log(this.parentNode);
+					// console.log(this);
+					// 두번째 클릭할 때는 parentNode가 없음 / 그러나 li는 존재함
+					// => li는 위에서 선언된 변수
+					if (this.parentNode != null){
+						this.parentNode.removeChild(this);
+					}
+					//첫번재로 listener를 호출했을 때는 if 안으로 들어가서 removeChild를 실행함
+					//두번째로 listener를 호출했을 때는 this(li)가 삭제된 상태임 => li의 parentNode가 있을수 엄ㅋ슴ㅋ
 			}, false);
 			li.style.opacity = "0";
 			// li.removeEventListener('click', function(e){
