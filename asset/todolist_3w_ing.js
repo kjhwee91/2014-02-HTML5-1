@@ -1,22 +1,6 @@
 //3주차 실습중
 //detach 하기
 //4주차 실습중
-// 온라인 오프라인 이벤트 추가하기
-// -- 온라인 오프라인 이벤트를 할당을 하고
-// -- 오프라인 일 때 헤더 엘리먼트에 오프라인 클래스를 추가하고
-// -- 온라인 일 때 헤더 엘리먼트에 오프라인 클래스를 삭제한다
-// 히스토리 객체 관리하기
-// 
-// #todo-list 엘리먼트에 active(completed) 엘리먼트를 누르면
-// 1) todo-list에 all-active(completed) 클래스를 추가하고
-// 2) 기존 anchor 에 selected클래스를 삭제하고 
-// 3) anchor selected  zmffotmfmf 추가한다
-// 
-
-// 동적으로 UI를 변경후 히스토리 추가 (history.pushState({"method" : "completed"}, null, active));
-
-// 뒤로가기 할 때 이벤트를 받아서 변경
-//  window.addEventListener("popstate", callback);
 
 /*
 	변수 선언 규칙
@@ -40,39 +24,10 @@ var Doc = {
 		} else {
 			return eDocument.getElementsByClassName(className);
 		}
-	},
-
-	getETN : function(tagName, eDocument){
-		if (eDocument === null){
-			return document.getElementsByTagName(tagName);
-		} else {
-			return eDocument.getElementsByTagName(tagName);
-		}
 	}
 };
 
 var TodoSync = {
-	init : function(){
-		window.addEventListener("online", this.networkListener);
-		window.addEventListener("offline", this.networkListener);
-	},
-
-	networkListener : function(){
-		// if(navigator.onLine){
-		// 	Doc.getEId("header").classList.remove("offline");
-		// } else {
-		// 	Doc.getEId("header").classList.add("offline");
-		// }
-		// a.some() == a["some"]()
-
-		var isOnLine = navigator.onLine?"remove":"add";
-		Doc.getEId("header").classList[isOnLine]("offline");
-
-		if(isOnLine){
-			// 서버에 싱크 맞추기
-		}
-	},
-
 	setParam : function(pMethod, pCallback, pKey, pSend){
 		var obj = {
 			method : pMethod,
@@ -91,13 +46,6 @@ var TodoSync = {
 	sAdd : function(todo, callback){
 		var obj = this.setParam("PUT", callback, "", "todo="+todo);
 		this.xhrService(obj);
-
-		if (navigator.onLine){
-			// ajax 통신
-		} else {
-			// data를 클라이언트에 저장 -> localstorage, indexDB, websql(최근에는 잘 안씀)
-		}
-
 	},
 
 	sComplete : function(param, callback){
@@ -136,65 +84,8 @@ var Todo = {
 	init : function(){
 		document.addEventListener("DOMContentLoaded", function(){
 			Doc.getEId("new-todo").addEventListener("keydown", this.addTodo.bind(this));
-			Doc.getEId("filters").addEventListener("click", this.filteredTodoList.bind(this));
-			window.addEventListener("popstate", this.filteredTodoListByURL.bind(this));
 		}.bind(this));
 		TodoSync.sGet(this.showInitList.bind(this));
-	},
-
-	filteredTodoListByURL : function(e){
-		// 새로고침일 경우는?
-		// not found 이기 때문에 서버에서 알맞은  markup 을 뿌려준다 
-		if(e.state){
-			var method = e.state.method;
-			var func = "filtered" + method[0].toUpperCase() + method.substring(1);
-			this[func]();
-		} else {
-			this.filteredAll();
-		}
-	},
-
-	filteredTodoList : function(e){
-		var target = e.target;
-		var tagName = target.tagName.toLowerCase();
-		if (tagName === "a"){
-			var href = target.getAttribute("href");
-			if (href === "index.html"){
-				this.filteredAll();
-				history.pushState({"method" : "all"}, null, "index.html");
-			} else if (href === "active"){
-				this.filteredActive();
-				history.pushState({"method" : "active"}, null, "active");
-			} else if (href === "completed"){
-				this.filteredCompleted();
-				history.pushState({"method" : "completed"}, null, "completed");
-			}
-		}
-		e.preventDefault();
-	},
-
-	filteredAll : function(){
-		Doc.getEId("todo-list").className = "";
-		this.changeSelectedFilter(0);
-	},
-
-	filteredActive : function(){
-		Doc.getEId("todo-list").className = "all-active";
-		this.changeSelectedFilter(1);
-	},
-
-	filteredCompleted : function(){
-		Doc.getEId("todo-list").className = "all-completed";
-		this.changeSelectedFilter(2);
-	},
-
-	changeSelectedFilter : function(targetIndex){
-		var naviBar = Doc.getEId("filters");
-		var btns = Doc.getETN("a", naviBar);
-		for (var i=0 ; i<btns.length ; i++){
-			btns[i].className = "";
-		}
-		btns[targetIndex].className = "selected";
 	},
 
 	showInitList : function(initParam){
@@ -309,7 +200,6 @@ var Todo = {
 };
 
 Todo.init();
-TodoSync.init();
 
 
 // document.addEventListener("DOMContentLoaded", function(){
