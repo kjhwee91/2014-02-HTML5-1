@@ -4,8 +4,6 @@
 		<meta charset="utf-8">
 		<title>HTML5 Programming - 1 Class</title>
 		<link rel="stylesheet" href="asset/base.css">
-		<script type="text/javascript" src="template/mustache.js"></script>
-		<script type="text/javascript" src="asset/todolist.js"></script>
 	</head>
 	<body>
 		<section id="todoapp">
@@ -17,25 +15,6 @@
 				<input id="toggle-all" type="checkbox">
 				<label for="toggle-all">Mark all as complete</label>
 				<ul id="todo-list">
-<!-- 
-					#완료했을때
-					<li class="completed">
-						<div class="view">
-							<input class="toggle" type="checkbox" checked>
-							<label>타이틀</label>
-							<button class="destroy"></button>
-						</div>
-					</li>
-
-					#일반 TODO
-					<li class="{}">
-						<div class="view">
-							<input class="toggle" type="checkbox" {}>
-							<label>타이틀</label>
-							<button class="destroy"></button>
-						</div>
-					</li>
--->
 				</ul>
 			</section>
 			<footer id="footer">
@@ -61,14 +40,21 @@
 			<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
 		</footer>
 
-		<script id="toDoTemplate" type="x-tmpl-mustache">
-			<li data-key="{{key}}" class="{{completed}}">
+		<script id="todoTemplate" type="x-tmpl-mustache">
+			<li data-key="{{key}}" class="{{needClass}}">
 				<div class="view">
 					<input class="toggle" type="checkbox" {{checked}}>
 					<label>{{todo}}</label>
 					<button class="destroy"></button>
 				</div>
 			</li>
+		</script>
+		<script type="text/javascript" src="asset/dollarYoung.js"></script>
+		<script type="text/javascript" src="template/mustache.js"></script>
+		<script type="text/javascript" src="asset/todolist.js"></script>
+		<script>
+			TodoSync.init();
+			Todo.init();
 		</script>
 	</body>
 </html>

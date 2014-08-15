@@ -1,47 +1,52 @@
 
-
 var TodoSync = {
 	init : function(){
 		this.networkListener.bind(this)();
+		this.setSyncEvent.bind(this)();
+	},
+
+	setSyncEvent : function(){
 		window.addEventListener("online", this.networkListener.bind(this));
 		window.addEventListener("offline", this.networkListener.bind(this));
 	},
- 
+
 	networkListener : function(){
-		var on = $0.is.Online();
-		var clsState = on?"remove":"add";
-		$0.D.getEId("header").classList[clsState]("offline");		
-		if(on) this.localDataToRemoteServer.service(this);
+		var clsState = $0.is.Online()?"remove":"add";
+		$0.D.getEId("header").classList[clsState]("offline");
+		this.localToRemote.service(this);
 	},
 
-	localDataToRemoteServer : {
-		actionList : {
+	localToRemote : {
+		actionMap : {
 			completed : "ChangeCompleteState",
 			destroyed : "DestroyTodo"
 		},
 
 		service : function(that){
-			if(localStorage.length != 0){
-				console.log("localStorage 데이터를 원격 저장소로 옮기기");
+			console.log("localToRemote service");
+			if($0.is.Online() && localStorage.length != 0){
 				for(var dataKey in localStorage){
-					var valueObj = $0.to.JSN(localStorage[dataKey]);
-					var objOriginPos = $0.is.localData(dataKey)?"local":"remote";
-					this[objOriginPos+"RootedData"].bind(that)(dataKey,valueObj,this.actionList);
+					var valueObj = JSON.parse(localStorage[dataKey]);
+					var objOriginPos = $0.is.Num(dataKey)?"remote":"local";
+					this[objOriginPos+"RootedDataSave"].bind(that)(dataKey,valueObj,this.actionMap);
 				}
+			}
+			if (localStorage.length === 0){
+				localStorage.clear();
 			}
 		},
 
-		localRootedData : function(dataKey, localSavedData, actionList){
+		localRootedDataSave : function(dataKey, localSavedData, map){
 			var params = {
 				todo : localSavedData.todo,
 				callback : function(respObj, originTodo){
-					var localData = $0.to.JSN(localStorage[dataKey]);
+					var localData = JSON.parse(localStorage[dataKey]);
 					localData.insertId = respObj.insertId;
-					localStorage.setItem(dataKey, $0.to.STR(localData));
+					localStorage.setItem(dataKey, JSON.stringify(localData));
 					for(var action in localData){
-						if($0.is.Undef(actionList[action])){
-							var actionFunc = actionList[action];
-							this["Remote"][actionFunc].bind(this.support)({
+						if($0.is.Undef(map[action])){
+							var actionFunc = map[action];
+							this[actionFunc]["remote"].bind(this)({
 								key : localData.insertId,
 								callback : function(){
 									delete localStorage[dataKey];
@@ -65,142 +70,189 @@ var TodoSync = {
 					})();
 				}.bind(this)
 			};
-			this.Remote.AddTodo.bind(this.support,params)();
+			this.AddTodo.remote.bind(this)(params);
 		},
 
-		remoteRootedData : function(dataKey, editedData, actionList){
+		remoteRootedDataSave : function(dataKey, editedData, map){
 			for(var item in editedData){
 				var obj = {
 					key : dataKey, 
 					callback : function(){},
 					completed : item==="completed"?editedData[item]:""
 				};
-				var func = actionList[item];
-				this["Remote"][func].bind(this.support,obj)();
+				var func = map[item];
+				this[func].remote.bind(this)(obj);
 				delete localStorage[dataKey];
 			}
 		}
 	},
+	//---돔 내에 있는 loc1 => 144444 으로 바꾸기
+	remoteService : function(remoteParam, originTodo){
+		console.log(remoteParam);	
+		var _ = remoteParam;
+		var URL = "http://ui.nhnnext.org:3333/kjhwee91";
+		var xhr = new XMLHttpRequest();
+		xhr.open( _.method, URL + _.key , true);
+		xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+		xhr.addEventListener("load", function(){
+			var respObj = JSON.parse(xhr.responseText);
+			_.callback(respObj, originTodo);
+		});
+		xhr.send(_.send);
+	},
 
-	support : {
-		dispatcher : function(params){
-			var notOnline =  !($0.is.Online());
-			var notStoraging = !($0.is.Storaging());
-			var func = $0.is.Online()?"Remote":"Local";
-			if (notOnline && notStoraging){
-				alert("저장을 할 수 없습니다.");
-			} else {
-				var actionObj = this[func];
-				actionObj[params.action].bind(this.support,params)();
-			}
-		},
-
-		setRemoteParam : function(pMethod, pCallback, pKey, pSend){
-			var obj = {
-				method : pMethod,
-				callback : pCallback,
-				key : pKey,
-				send : pSend
-			}
-			return obj;
-		},
-
-		remoteService : function(remoteParam, originTodo){
-			console.log("통신 시작(" + $0.to.STR(remoteParam) + ")");
-			var _ = remoteParam;
-			var URL = "http://ui.nhnnext.org:3333/kjhwee91";
-			var xhr = new XMLHttpRequest();
-			xhr.open( _.method, URL + _.key , true);
-			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-			xhr.addEventListener("load", function(){
-				var respObj = $0.to.JSN(xhr.responseText);
-				_.callback(respObj, originTodo);
-				console.log("통신 성공");
-			});
-			xhr.send(_.send);
+	dispatcher : function(params){
+		var notOnline =  !($0.is.Online());
+		var notStoraging = !($0.is.Storaging());
+		var func = $0.is.Online()?"remote":"local";
+		if (notOnline && notStoraging){
+			alert("저장을 할 수 없습니다.");
+		} else {
+			var actionObj = this[params.action];
+			actionObj[func].bind(this,params)();
 		}
 	},
 
-	Remote : {
-		DestroyTodo : function(originParam){
+	GetTodoList : {
+		remote : function(callback){
+			var remoteParam = this.setRemoteParam(
+				"GET", callback, "", "");
+			this.remoteService(remoteParam);
+		}
+	},
+
+	DestroyTodo : {
+		remote : function(originParam){
 			var remoteParam = this.setRemoteParam(
 				"DELETE", originParam.callback, "/"+originParam.key, "");
 			this.remoteService(remoteParam);
 		},
+		local : function(params){
+			var notLocalData = !$0.is.LocalData(params.key);
+			if(notLocalData){
+				localStorage.setItem(params.key,"{}");
+			}
 
-		GetTodoList : function(callback){
-			var remoteParam = this.setRemoteParam(
-				"GET", callback, "", "");
-			this.remoteService(remoteParam);
-		},
+			var dataInLocal = JSON.parse(localStorage.getItem(params.key));
+			dataInLocal.destroyed = 1;
+			var modifiedData = JSON.stringify(dataInLocal);
+			localStorage.setItem(params.key, modifiedData);
+			params.callback();
+		}
+	},
 
-		ChangeCompleteState : function(originParam){
+	ChangeCompleteState : {
+		remote : function(originParam){
 			var remoteParam = this.setRemoteParam(
 				"POST", originParam.callback, "/"+originParam.key, "completed=" + originParam.completed);
 			this.remoteService(remoteParam);
 		},
 
-		AddTodo : function(originParam){
-			var remoteParam = this.setRemoteParam(
-				"PUT", originParam.callback, "", "todo="+originParam.todo);
-			this.remoteService(remoteParam, originParam.todo);
+		local : function(params){
+			var notLocalData = !$0.is.LocalData(params.key);
+			if(notLocalData){
+				localStorage.setItem(params.key,"{}");
+			}
+
+			var dataInLocal = JSON.parse(localStorage.getItem(params.key));
+			dataInLocal.completed = params.completed;
+			var modifiedData = JSON.stringify(dataInLocal);
+			localStorage.setItem(params.key, modifiedData);
+			params.callback();
 		}
 	},
 
-	Local : {
-		DestroyTodo : function(params){
-			var notLocalData = !$0.is.LocalData(params.key);
-			if(notLocalData){
-				localStorage.setItem(params.key,"{}");
-			}
-
-			var dataInLocal = $0.to.JSN(localStorage.getItem(params.key));
-			dataInLocal.destroyed = 1;
-			var modifiedData = $0.to.STR(dataInLocal);
-			localStorage.setItem(params.key, modifiedData);
-			params.callback();
+	AddTodo : {
+		remote : function(originParam){
+			var remoteParam = this.setRemoteParam(
+				"PUT", originParam.callback, "", "todo="+originParam.todo);
+			this.remoteService(remoteParam, originParam.todo);
 		},
 
-		ChangeCompleteState : function(params){
-			var notLocalData = !$0.is.LocalData(params.key);
-			if(notLocalData){
-				localStorage.setItem(params.key,"{}");
-			}
-
-			var dataInLocal = $0.to.JSN(localStorage.getItem(params.key));
-			dataInLocal.completed = params.completed;
-			var modifiedData = $0.to.STR(dataInLocal);
-			localStorage.setItem(params.key, modifiedData);
-			params.callback();
-		},
-
-		AddTodo : function(params){
+		local : function(params){
 			var value = localStorage.length + 1;
 			var locId = "loc" + value;
-			var toSaveData = {todo : params.todo, completed : 0};
-			localStorage.setItem(locId, $0.to.STR(toSaveData));
+			var toSaveData = this.setLocalParam(params.todo, 0);
+			localStorage.setItem(locId, JSON.stringify(toSaveData));
 			params.callback({
 				insertId : locId,
 				needClass : "localSaved"
 			}, params.todo);
 		}
 	},
+	setLocalParam : function(lTodo, lCompleted){
+		var obj = {
+			todo : lTodo,
+			completed : lCompleted
+		}
+		return obj;
+	},
+
+	setRemoteParam : function(pMethod, pCallback, pKey, pSend){
+		var obj = {
+			method : pMethod,
+			callback : pCallback,
+			key : pKey,
+			send : pSend
+		}
+		return obj;
+	},
+
+	remoteAdd : function(todo, callback){
+		var remoteObj = this.setRemoteParam("PUT", callback, "", "todo="+todo);
+		this.xhrService(remoteObj, todo);
+	},
+
+	localAdd : function(todo, callback){
+		if (typeof(Storage) != "undefined"){
+			var value = localStorage.length + 1;
+			var id = "loc" + value;
+			localStorage.setItem(id);
+			_.callback({insertId : id}, todo);
+		} else {
+			alert("Can't Use Local Storage");
+		}
+	},
+
+	remoteGet : function(callback){
+		var obj = this.setParam("GET", callback, "", "");
+		this.xhrService(obj);
+		if (navigator.onLine){
+			this.xhrService(obj, todo);
+		} else {
+ 			this.localService(obj, todo);
+		}
+	},
+
+	remoteComplete : function(param, callback){
+		var obj = this.setParam("POST", callback, "/"+param.key, "completed=" + param.completed);
+		this.xhrService(obj);
+	},
+
+	remoteDestroy : function(param, callback){
+		var obj = this.setParam("DELETE", callback, "/"+param.key, "");
+		this.xhrService(obj);
+	}
 }
 
 var Todo = {
 	init : function(){
 		document.addEventListener("DOMContentLoaded", function(){
+			// 새로운 것 추가하기
 			$0.D.getEId("new-todo").addEventListener("keydown", this.addTodo.bind(this));
+			//필터링 기능 -- 온라인, 오프라인과 상관 없음
 			$0.D.getEId("filters").addEventListener("click", this.filterTodoList.bind(this));
+			// 뒤로가기 기능
 			window.addEventListener("popstate", this.filterTodoListByURL.bind(this));
 		}.bind(this));
-		TodoSync.Remote.GetTodoList.bind(TodoSync.support, this.showInitPage.bind(this))();
+		TodoSync.GetTodoList.remote.bind(TodoSync, this.showInitPage.bind(this))();
 	},
 
 	showInitPage : function(initParam){
 		var todoListWrap = $0.D.getEId("todo-list");
 		var fullList = "";
 		for(var i in initParam){
+			console.log(initParam[i]);
 			var completedCheck = initParam[i].completed?"completed":"";
 			var todoObj = {
 				todo : initParam[i].todo,
@@ -238,11 +290,11 @@ var Todo = {
 		if (e.keyCode === ENTER_KEY_CODE){
 			var newTodoEle = $0.D.getEId("new-todo");
 			var newTodo = newTodoEle.value;
-			TodoSync.support.dispatcher.bind(TodoSync,{
+			TodoSync.dispatcher({
 				action : "AddTodo", 
 				todo : newTodo, 
 				callback : this.addTodoDom.bind(this)
-			})();
+			});
 			newTodoEle.value = "";
 		}
 	},
@@ -266,7 +318,7 @@ var Todo = {
 		var button = e.target;
 		var li = button.parentNode.parentNode;
 
-		TodoSync.support.dispatcher.bind(TodoSync,{
+		TodoSync.dispatcher({
 			action : "DestroyTodo", 
 			key : li.dataset.key,
 			callback : function(){
@@ -277,7 +329,7 @@ var Todo = {
 				}, false);
 				li.style.opacity = "0";
 			}
-		})();
+		});
 	},
 
 	completeTodo : function(e){
@@ -285,7 +337,7 @@ var Todo = {
 		var li = button.parentNode.parentNode;
 		var bChecked = button.checked?1:0;
 
-		TodoSync.support.dispatcher.bind(TodoSync,{
+		TodoSync.dispatcher({
 			action : "ChangeCompleteState",
 			key : li.dataset.key,
 			completed : bChecked,
@@ -293,7 +345,7 @@ var Todo = {
 				var clsAction = bChecked===1?"add":"remove";
 				li.classList[clsAction]("completed");
 			}
-		})();
+		});
 	},
 
 	setNewTodoEvent : function(newTodo){
