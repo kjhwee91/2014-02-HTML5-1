@@ -1,19 +1,10 @@
-
-
 var TodoSync = {
 	init : function(){
-		this.networkListener.bind(this)();
-		window.addEventListener("online", this.networkListener.bind(this));
-		window.addEventListener("offline", this.networkListener.bind(this));
+		this.support.networkListener.bind(this)();
+		window.addEventListener("online", this.support.networkListener.bind(this));
+		window.addEventListener("offline", this.support.networkListener.bind(this));
 	},
  
-	networkListener : function(){
-		var on = $0.is.Online();
-		var clsState = on?"remove":"add";
-		$0.D.getEId("header").classList[clsState]("offline");		
-		if(on) this.localDataToRemoteServer.service(this);
-	},
-
 	localDataToRemoteServer : {
 		actionList : {
 			completed : "ChangeCompleteState",
@@ -31,38 +22,44 @@ var TodoSync = {
 			}
 		},
 
+		localStorageCtr : function(actionFunc, localData, dataKey){
+			this["Remote"][actionFunc].bind(this.support)({
+				key : localData.insertId,
+				callback : function(){
+					delete localStorage[dataKey];
+				},
+				completed : localData.completed,
+			});
+		},
+
+		changeDataKey : function(localData, dataKey){
+			var list = $0.D.getEId("todo-list");
+			var localSavedDatas = $0.D.getECN("localSaved");
+			for (var i=0 ; localSavedDatas.length ; i++){
+				var data = localSavedDatas[i];
+				var locDataKey = data.getAttribute("data-key");
+				if(locDataKey === dataKey){
+					data.setAttribute("data-key", localData.insertId);
+					data.classList.remove("localSaved");
+					break;
+				}
+			}
+		},
+
 		localRootedData : function(dataKey, localSavedData, actionList){
+			var localData = $0.to.JSN(localStorage[dataKey]);
 			var params = {
 				todo : localSavedData.todo,
 				callback : function(respObj, originTodo){
-					var localData = $0.to.JSN(localStorage[dataKey]);
 					localData.insertId = respObj.insertId;
 					localStorage.setItem(dataKey, $0.to.STR(localData));
+					var ctr = this.localDataToRemoteServer;
 					for(var action in localData){
-						if($0.is.Undef(actionList[action])){
-							var actionFunc = actionList[action];
-							this["Remote"][actionFunc].bind(this.support)({
-								key : localData.insertId,
-								callback : function(){
-									delete localStorage[dataKey];
-								},
-								completed : localData.completed,
- 							});
-						};
+						var actionFunc = actionList[action];
+						if($0.is.Undef(actionFunc))
+							ctr.localStorageCtr.bind(this, actionFunc, localData, dataKey)();
 					}
-					var changeDataKey = (function(){
-						var list = $0.D.getEId("todo-list");
-						var localSavedDatas = $0.D.getECN("localSaved");
-						for (var i=0 ; localSavedDatas.length ; i++){
-							var data = localSavedDatas[i];
-							var locDataKey = data.getAttribute("data-key");
-							if(locDataKey === dataKey){
-								data.setAttribute("data-key", localData.insertId);
-								data.classList.remove("localSaved");
-								break;
-							}
-						}
-					})();
+					ctr.changeDataKey(localData, dataKey);
 				}.bind(this)
 			};
 			this.Remote.AddTodo.bind(this.support,params)();
@@ -83,6 +80,13 @@ var TodoSync = {
 	},
 
 	support : {
+		networkListener : function(){
+			var on = $0.is.Online();
+			var clsState = on?"remove":"add";
+			$0.D.getEId("header").classList[clsState]("offline");		
+			if(on) this.localDataToRemoteServer.service(this);
+		},
+
 		dispatcher : function(params){
 			var notOnline =  !($0.is.Online());
 			var notStoraging = !($0.is.Storaging());
@@ -190,14 +194,14 @@ var TodoSync = {
 var Todo = {
 	init : function(){
 		document.addEventListener("DOMContentLoaded", function(){
-			$0.D.getEId("new-todo").addEventListener("keydown", this.addTodo.bind(this));
-			$0.D.getEId("filters").addEventListener("click", this.filterTodoList.bind(this));
-			window.addEventListener("popstate", this.filterTodoListByURL.bind(this));
+			$0.D.getEId("new-todo").addEventListener("keydown", this.tdAction._add.bind(this));
+			$0.D.getEId("filters").addEventListener("click", this.filter.service.bind(this.filter));
+			window.addEventListener("popstate", this.filter.byURL.bind(this.filter));
 		}.bind(this));
-		TodoSync.Remote.GetTodoList.bind(TodoSync.support, this.showInitPage.bind(this))();
+		TodoSync.Remote.GetTodoList.bind(TodoSync.support, this.showInitTodo.bind(this))();
 	},
 
-	showInitPage : function(initParam){
+	showInitTodo : function(initParam){
 		var todoListWrap = $0.D.getEId("todo-list");
 		var fullList = "";
 		for(var i in initParam){
@@ -208,7 +212,7 @@ var Todo = {
 				needClass : completedCheck,
 				checked : initParam[i].completed?"checked":""
 			};
-			var list = this.makeTodoDom(todoObj);
+			var list = this.make.domTemplete(todoObj);
 			fullList = fullList + list;
 		}
 		todoListWrap.insertAdjacentHTML("beforeend", fullList);
@@ -216,154 +220,159 @@ var Todo = {
 			var list = todoListWrap.children[i];
 			var isDom = typeof list.tagName != "undefined" && list.tagName.toLowerCase() === "li";
 			if(isDom){
-				list.style.opacity = 1;
-				this.setNewTodoEvent(list);
+				this.make.setButtonEvents.bind(this, list)();
+				this.make.setUIEvnets(list);
 			}
 		}
 	},
 
-	makeTodoDom : function(todoObj){
-		var template = $0.D.getEId("todoTemplate").innerHTML;
-		var rendered = Mustache.render(template, {
-			todo : todoObj.todo, 
-			key : todoObj.id,
-			needClass : todoObj.needClass,
-			checked : todoObj.checked
-		});
-		return rendered;
-	},
-
-	addTodo : function(e){
-		var ENTER_KEY_CODE = 13;
-		if (e.keyCode === ENTER_KEY_CODE){
-			var newTodoEle = $0.D.getEId("new-todo");
-			var newTodo = newTodoEle.value;
-			TodoSync.support.dispatcher.bind(TodoSync,{
-				action : "AddTodo", 
-				todo : newTodo, 
-				callback : this.addTodoDom.bind(this)
-			})();
-			newTodoEle.value = "";
-		}
-	},
-
-	replaceDataKey : function(respText){
-		console.log(respText);
-	},
-
-	addTodoDom : function(params, originTodo){
-		var toDoListEle = $0.D.getEId("todo-list");
-		var toDoLi = this.makeTodoDom({
+	createNew : function(params, originTodo){
+		var template = this.make.domTemplete({
 			todo : originTodo, 
-			id : params.insertId, 
+			id : params.insertId,
 			needClass : params.needClass
 		});
-		toDoListEle.insertAdjacentHTML("afterbegin", toDoLi);
-		this.setNewTodoEvent(toDoListEle.children[0]);
+		var lastInserted = this.make.insertDom(template);
+		this.make.setButtonEvents.bind(this,lastInserted)();
+		this.make.setUIEvnets(lastInserted);
 	},
 
-	destroyTodo : function(e){
-		var button = e.target;
-		var li = button.parentNode.parentNode;
-
-		TodoSync.support.dispatcher.bind(TodoSync,{
-			action : "DestroyTodo", 
-			key : li.dataset.key,
-			callback : function(){
-				li.addEventListener('webkitTransitionEnd', function(e){
-					if (this.parentNode != null){
-						this.parentNode.removeChild(this);
-					}
-				}, false);
-				li.style.opacity = "0";
+	tdAction : {
+		_add : function(e){
+			var ENTER_KEY_CODE = 13;
+			if (e.keyCode === ENTER_KEY_CODE){
+				var newTodoEle = $0.D.getEId("new-todo");
+				var newTodo = newTodoEle.value;
+				TodoSync.support.dispatcher.bind(TodoSync,{
+					action : "AddTodo", 
+					todo : newTodo, 
+					callback : this.createNew.bind(this)
+				})();
+				newTodoEle.value = "";
 			}
-		})();
+		},
+
+		_destroy : function(e){
+			var button = e.target;
+			var li = button.parentNode.parentNode;
+
+			TodoSync.support.dispatcher.bind(TodoSync,{
+				action : "DestroyTodo", 
+				key : li.dataset.key,
+				callback : function(){
+					li.addEventListener('webkitTransitionEnd', function(e){
+						if (this.parentNode != null){
+							this.parentNode.removeChild(this);
+						}
+					}, false);
+					li.style.opacity = "0";
+				}
+			})();
+		},
+
+		_completed : function(e){
+			var button = e.target;
+			var li = button.parentNode.parentNode;
+			var bChecked = button.checked?1:0;
+
+			TodoSync.support.dispatcher.bind(TodoSync,{
+				action : "ChangeCompleteState",
+				key : li.dataset.key,
+				completed : bChecked,
+				callback : function(){
+					var clsAction = bChecked===1?"add":"remove";
+					li.classList[clsAction]("completed");
+				}
+			})();
+		}
 	},
 
-	completeTodo : function(e){
-		var button = e.target;
-		var li = button.parentNode.parentNode;
-		var bChecked = button.checked?1:0;
+	make : {
+		insertDom : function(template){
+			var toDoListEle = $0.D.getEId("todo-list");
+			toDoListEle.insertAdjacentHTML("afterbegin", template);
+			return toDoListEle.children[0];
+		},
 
-		TodoSync.support.dispatcher.bind(TodoSync,{
-			action : "ChangeCompleteState",
-			key : li.dataset.key,
-			completed : bChecked,
-			callback : function(){
-				var clsAction = bChecked===1?"add":"remove";
-				li.classList[clsAction]("completed");
-			}
-		})();
-	},
-
-	setNewTodoEvent : function(newTodo){
-		newTodo.style.opacity = "1";
-		newTodo.addEventListener('click',function(e){
-			this.buttonEvent(e, newTodo);
+		setButtonEvents : function(newTodo){
+			newTodo.addEventListener('click', function(e){
+				var completeBtn = $0.D.getECN("toggle", newTodo)[0];
+				var destoryBtn = $0.D.getECN("destroy", newTodo)[0];
+				if($0.is.Target(e.target, completeBtn)){
+					this.tdAction._completed(e);
+				} else if($0.is.Target(e.target, destoryBtn)){
+					this.tdAction._destroy(e);
+				}
 			}.bind(this), false);
+		},
+
+		setUIEvnets : function(newTodo){
+			newTodo.style.opacity = "1";
+		},
+
+		domTemplete : function(todoObj){
+			var template = $0.D.getEId("todoTemplate").innerHTML;
+			var rendered = Mustache.render(template, {
+				todo : todoObj.todo, 
+				key : todoObj.id,
+				needClass : todoObj.needClass,
+				checked : todoObj.checked
+			});
+			return rendered;
+		},
 	},
 
-	buttonEvent : function(e, newTodo){
-		var completeBtn = $0.D.getECN("toggle", newTodo)[0];
-		var destoryBtn = $0.D.getECN("destroy", newTodo)[0];
-		if($0.is.Target(e.target, completeBtn)){
-			this.completeTodo(e);
-		} else if($0.is.Target(e.target, destoryBtn)){
-			this.destroyTodo(e);
-		}
-	},
-	
-	// 하단의 필터링
-	filterTodoListByURL : function(e){
-		if(e.state){
-			var method = e.state.method;
-			var func = "filtered" + method[0].toUpperCase() + method.substring(1);
-			this[func]();
-		} else {
-			this.filteredAll();
-		}
-	},
+	filter : {
+		service : function(e){
+			var target = e.target;
+			var tagName = target.tagName.toLowerCase();
+			if (tagName === "a"){
+				var href = target.getAttribute("href");
+				if(href === "index.html"){
+					this.ftFunc._all();
+					history.pushState({"method" : "all"}, null, href);
+					return ;
+				}
+				var _func = "_" + href;
+				this.ftFunc[_func]();
+				history.pushState({"method" : href}, null, href);
+			}
+			e.preventDefault();
+		},
 
-	filterTodoList : function(e){
-		var target = e.target;
-		var tagName = target.tagName.toLowerCase();
-		if (tagName === "a"){
-			var href = target.getAttribute("href");
-			if (href === "index.html"){
-				this.filteredAll();
-				history.pushState({"method" : "all"}, null, "index.html");
-			} else if (href === "active"){
-				this.filteredActive();
-				history.pushState({"method" : "active"}, null, "active");
-			} else if (href === "completed"){
-				this.filteredCompleted();
-				history.pushState({"method" : "completed"}, null, "completed");
+		byURL : function(e){
+			if(e.state){
+				var method ="_" + e.state.method;
+				this["ftFunc"][method]();
+			} else {
+				this.ftFunc._all();
+			}
+		},
+
+		ftFunc : {
+			changeSelected : function(targetIndex){
+				var naviBar = $0.D.getEId("filters");
+				var btns = $0.D.getETN("a", naviBar);
+				for (var i=0 ; i<btns.length ; i++){
+					btns[i].className = "";
+				}
+				btns[targetIndex].className = "selected";
+			},
+
+			_all : function(){
+				$0.D.getEId("todo-list").className = "";
+				this.changeSelected(0);
+			},
+
+			_completed : function(){
+				$0.D.getEId("todo-list").className = "all-completed";
+				this.changeSelected(2);
+			},
+
+			_active : function(){
+				$0.D.getEId("todo-list").className = "all-active";
+				this.changeSelected(1);
 			}
 		}
-		e.preventDefault();
-	},
-
-	filteredAll : function(){
-		$0.D.getEId("todo-list").className = "";
-		this.changeSelectedFilter(0);
-	},
-
-	filteredActive : function(){
-		$0.D.getEId("todo-list").className = "all-active";
-		this.changeSelectedFilter(1);
-	},
-
-	filteredCompleted : function(){
-		$0.D.getEId("todo-list").className = "all-completed";
-		this.changeSelectedFilter(2);
-	},
-
-	changeSelectedFilter : function(targetIndex){
-		var naviBar = $0.D.getEId("filters");
-		var btns = $0.D.getETN("a", naviBar);
-		for (var i=0 ; i<btns.length ; i++){
-			btns[i].className = "";
-		}
-		btns[targetIndex].className = "selected";
 	}
 };
