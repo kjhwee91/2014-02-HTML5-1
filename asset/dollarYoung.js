@@ -2,6 +2,7 @@ var $0 = {
 
 	to : {
 		JSN : function(string){
+			
 			return JSON.parse(string);
 		},
 

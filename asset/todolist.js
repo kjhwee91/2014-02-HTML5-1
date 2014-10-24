@@ -14,6 +14,7 @@ var TodoSync = {
 		service : function(that){
 			if(localStorage.length != 0){
 				console.log("localStorage 데이터를 원격 저장소로 옮기기");
+				console.log(localStorage);
 				for(var dataKey in localStorage){
 					var valueObj = $0.to.JSN(localStorage[dataKey]);
 					var objOriginPos = $0.is.localData(dataKey)?"local":"remote";
@@ -110,7 +111,6 @@ var TodoSync = {
 		},
 
 		remoteService : function(remoteParam, originTodo){
-			console.log("통신 시작(" + $0.to.STR(remoteParam) + ")");
 			var _ = remoteParam;
 			var URL = "http://ui.nhnnext.org:3333/kjhwee91";
 			var xhr = new XMLHttpRequest();
@@ -119,7 +119,7 @@ var TodoSync = {
 			xhr.addEventListener("load", function(){
 				var respObj = $0.to.JSN(xhr.responseText);
 				_.callback(respObj, originTodo);
-				console.log("통신 성공");
+				console.log("conn try : " + $0.to.STR(remoteParam) + " / conn success");
 			});
 			xhr.send(_.send);
 		}
