@@ -29,4 +29,4 @@ document.addEventListener("DOMContentLoaded", function(){
 	}
 
  	document.getElementById("new-todo").addEventListener("keydown", addTodo);
-});
+ });
