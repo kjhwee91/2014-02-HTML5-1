@@ -13,8 +13,11 @@ var TodoSync = {
 
 		service : function(that){
 			if(localStorage.length != 0){
+				if(localStorage["debug"] === "undefined"){
+					localStorage.clear();
+					return ;
+				}
 				console.log("localStorage 데이터를 원격 저장소로 옮기기");
-				console.log(localStorage);
 				for(var dataKey in localStorage){
 					var valueObj = $0.to.JSN(localStorage[dataKey]);
 					var objOriginPos = $0.is.localData(dataKey)?"local":"remote";
